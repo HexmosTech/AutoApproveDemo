@@ -21,20 +21,6 @@ func (s *Store) Get(key string) (string, bool) {
 	return v, ok
 }
 
-// Set stores value under key.
-func (s *Store) Set(key, value string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.data[key] = value
-}
-
-// Delete removes key from the store.
-func (s *Store) Delete(key string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	delete(s.data, key)
-}
-
 // Keys returns all keys currently stored.
 func (s *Store) Keys() []string {
 	s.mu.RLock()
@@ -44,4 +30,35 @@ func (s *Store) Keys() []string {
 		keys = append(keys, k)
 	}
 	return keys
+}
+
+// applyLocked runs fn while holding the write lock. All mutating operations
+// route through this so future batched writes can share one critical section.
+func (s *Store) applyLocked(fn func(data map[string]string)) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	fn(s.data)
+}
+
+// Set stores value under key.
+func (s *Store) Set(key, value string) {
+	s.applyLocked(func(data map[string]string) {
+		data[key] = value
+	})
+}
+
+// Delete removes key from the store.
+func (s *Store) Delete(key string) {
+	s.applyLocked(func(data map[string]string) {
+		delete(data, key)
+	})
+}
+
+// SetMany stores multiple key/value pairs under a single lock acquisition.
+func (s *Store) SetMany(pairs map[string]string) {
+	s.applyLocked(func(data map[string]string) {
+		for k, v := range pairs {
+			data[k] = v
+		}
+	})
 }
