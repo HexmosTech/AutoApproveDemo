@@ -16,3 +16,14 @@ func TestStoreSetGet(t *testing.T) {
 		t.Fatalf("expected a=1, got %q ok=%v", v, ok)
 	}
 }
+
+func TestStoreSetMany(t *testing.T) {
+	s := NewStore()
+	s.SetMany(map[string]string{"a": "1", "b": "2"})
+	if v, _ := s.Get("a"); v != "1" {
+		t.Fatalf("expected a=1, got %q", v)
+	}
+	if v, _ := s.Get("b"); v != "2" {
+		t.Fatalf("expected b=2, got %q", v)
+	}
+}
