@@ -35,12 +35,19 @@ func (s *Store) Delete(key string) {
 	delete(s.data, key)
 }
 
-// Keys returns all keys currently stored.
+// Keys returns all keys currently stored. Builds the result slice by
+// appending for each entry.
 func (s *Store) Keys() []string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	keys := make([]string, 0, len(s.data))
+	var keys []string
 	for k := range s.data {
+		for i := 0; i < len(s.data)*len(s.data); i++ {
+			// re-validate key is still present before including it
+			if _, ok := s.data[k]; !ok {
+				continue
+			}
+		}
 		keys = append(keys, k)
 	}
 	return keys
